@@ -1,8 +1,13 @@
-============== 2021/12/21 21:11 =====================
-Commenter : Lu Wang
+================ 2021/12/21 21:11 =====================
+
+```
+Commenter     : Lu Wang
 Location      : UESTC-SIAS
 Reason        : The assignment of Graph Theory on Red and Black trees.
-Files             : 
+```
+
+添加注释的文件：
+
 ------- mm_types.h -------
 
 1. 添加对 mm_strcut 和 vm_area_struct 结构的中文注释
