@@ -56,21 +56,21 @@ extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
 
 #define pte_ERROR(pte)		__pte_error(__FILE__, __LINE__, pte_val(pte))
 
-#define pte_pfn(pte)		((pte_val(pte) & PHYS_MASK) >> PAGE_SHIFT)
+#define pte_pfn(pte)		((pte_val(pte) & PHYS_MASK) >> PAGE_SHIFT) /* 页表项取出物理页帧号 */
 
-#define pfn_pte(pfn,prot)	(__pte(((phys_addr_t)(pfn) << PAGE_SHIFT) | pgprot_val(prot)))
+#define pfn_pte(pfn,prot)	(__pte(((phys_addr_t)(pfn) << PAGE_SHIFT) | pgprot_val(prot)))  /* 把页帧号和标志位组合成页表项 */
 
-#define pte_none(pte)		(!pte_val(pte))
-#define pte_clear(mm,addr,ptep)	set_pte(ptep, __pte(0))
-#define pte_page(pte)		(pfn_to_page(pte_pfn(pte)))
+#define pte_none(pte)		(!pte_val(pte)) /* 相应的页不存在时返回 1 */
+#define pte_clear(mm,addr,ptep)	set_pte(ptep, __pte(0)) /* 将进程的页表项清 0 */
+#define pte_page(pte)		(pfn_to_page(pte_pfn(pte)))  /* 返回一个与PTE项相对应的 struct page */
 
 /*
  * The following only work if pte_present(). Undefined behaviour otherwise.
  */
-#define pte_present(pte)	(!!(pte_val(pte) & (PTE_VALID | PTE_PROT_NONE)))
-#define pte_young(pte)		(!!(pte_val(pte) & PTE_AF))
+#define pte_present(pte)	(!!(pte_val(pte) & (PTE_VALID | PTE_PROT_NONE)))  /* 检查页是否在内存中 */
+#define pte_young(pte)		(!!(pte_val(pte) & PTE_AF))  /* 页是否被访问过 */
 #define pte_special(pte)	(!!(pte_val(pte) & PTE_SPECIAL))
-#define pte_write(pte)		(!!(pte_val(pte) & PTE_WRITE))
+#define pte_write(pte)		(!!(pte_val(pte) & PTE_WRITE))  /* 检查页是否可写 */
 #define pte_user_exec(pte)	(!(pte_val(pte) & PTE_UXN))
 #define pte_cont(pte)		(!!(pte_val(pte) & PTE_CONT))
 
@@ -84,13 +84,13 @@ extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
 	(__boundary - 1 < (end) - 1) ? __boundary : (end);			\
 })
 
-#ifdef CONFIG_ARM64_HW_AFDBM
-#define pte_hw_dirty(pte)	(pte_write(pte) && !(pte_val(pte) & PTE_RDONLY))
+#ifdef CONFIG_ARM64_HW_AFDBM  /* ARMv8.1 硬件支持更新 Access and Dirty 标志 */
+#define pte_hw_dirty(pte)	(pte_write(pte) && !(pte_val(pte) & PTE_RDONLY))	/* TODO */
 #else
 #define pte_hw_dirty(pte)	(0)
 #endif
 #define pte_sw_dirty(pte)	(!!(pte_val(pte) & PTE_DIRTY))
-#define pte_dirty(pte)		(pte_sw_dirty(pte) || pte_hw_dirty(pte))
+#define pte_dirty(pte)		(pte_sw_dirty(pte) || pte_hw_dirty(pte))   /* 检查页是不是脏的 */
 
 #define pte_valid(pte)		(!!(pte_val(pte) & PTE_VALID))
 /*
@@ -122,31 +122,37 @@ static inline pte_t set_pte_bit(pte_t pte, pgprot_t prot)
 	return pte;
 }
 
+/* 清除写权限 */
 static inline pte_t pte_wrprotect(pte_t pte)
 {
 	return clear_pte_bit(pte, __pgprot(PTE_WRITE));
 }
 
+/* 设置写权限 */
 static inline pte_t pte_mkwrite(pte_t pte)
 {
 	return set_pte_bit(pte, __pgprot(PTE_WRITE));
 }
 
+/* 清除脏位 */
 static inline pte_t pte_mkclean(pte_t pte)
 {
 	return clear_pte_bit(pte, __pgprot(PTE_DIRTY));
 }
 
+/* 设置脏位 */
 static inline pte_t pte_mkdirty(pte_t pte)
 {
 	return set_pte_bit(pte, __pgprot(PTE_DIRTY));
 }
 
+/* 清除访问标志 */
 static inline pte_t pte_mkold(pte_t pte)
 {
 	return clear_pte_bit(pte, __pgprot(PTE_AF));
 }
 
+/* 设置访问标志 */
 static inline pte_t pte_mkyoung(pte_t pte)
 {
 	return set_pte_bit(pte, __pgprot(PTE_AF));
@@ -183,6 +189,7 @@ static inline pmd_t pmd_mkcont(pmd_t pmd)
 	return __pmd(pmd_val(pmd) | PMD_SECT_CONT);
 }
 
+/* 将诸如从 mk_page 返回的一个 pte_t 写到进程的页表里 */
 static inline void set_pte(pte_t *ptep, pte_t pte)
 {
 	*ptep = pte;
@@ -329,7 +336,7 @@ static inline int pmd_protnone(pmd_t pmd)
 #define pmd_trans_huge(pmd)	(pmd_val(pmd) && !(pmd_val(pmd) & PMD_TABLE_BIT))
 #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 
-#define pmd_present(pmd)	pte_present(pmd_pte(pmd))
+#define pmd_present(pmd)	pte_present(pmd_pte(pmd)) 
 #define pmd_dirty(pmd)		pte_dirty(pmd_pte(pmd))
 #define pmd_young(pmd)		pte_young(pmd_pte(pmd))
 #define pmd_wrprotect(pmd)	pte_pmd(pte_wrprotect(pmd_pte(pmd)))
@@ -373,7 +380,7 @@ struct file;
 extern pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
 				     unsigned long size, pgprot_t vma_prot);
 
-#define pmd_none(pmd)		(!pmd_val(pmd))
+#define pmd_none(pmd)		(!pmd_val(pmd)) /* 不存在时返回 1 */
 
 #define pmd_bad(pmd)		(!(pmd_val(pmd) & PMD_TABLE_BIT))
 
@@ -424,7 +431,7 @@ static inline phys_addr_t pmd_page_paddr(pmd_t pmd)
 #define pte_set_fixmap_offset(pmd, addr)	pte_set_fixmap(pte_offset_phys(pmd, addr))
 #define pte_clear_fixmap()		clear_fixmap(FIX_PTE)
 
-#define pmd_page(pmd)		pfn_to_page(__phys_to_pfn(pmd_val(pmd) & PHYS_MASK))
+#define pmd_page(pmd)		pfn_to_page(__phys_to_pfn(pmd_val(pmd) & PHYS_MASK)) /* 返回一个包含页表项集的 struct page */
 
 /* use ONLY for statically allocated translation tables */
 #define pte_offset_kimg(dir,addr)	((pte_t *)__phys_to_kimg(pte_offset_phys((dir), (addr))))
@@ -433,7 +440,8 @@ static inline phys_addr_t pmd_page_paddr(pmd_t pmd)
  * Conversion functions: convert a page and protection to a page entry,
  * and a page entry and page directory to the page they refer to.
  */
-#define mk_pte(page,prot)	pfn_pte(page_to_pfn(page),prot)
+/* 把一个 struct page 和一些保护位合成一个pte_t，以便插入到页表中 */
+#define mk_pte(page,prot)	pfn_pte(page_to_pfn(page),prot) 
 
 #if CONFIG_PGTABLE_LEVELS > 2
 
@@ -492,9 +500,9 @@ static inline phys_addr_t pud_page_paddr(pud_t pud)
 
 #define pud_ERROR(pud)		__pud_error(__FILE__, __LINE__, pud_val(pud))
 
-#define pgd_none(pgd)		(!pgd_val(pgd))
+#define pgd_none(pgd)		(!pgd_val(pgd))    /* 判断页全局目录表项是空表项 */
 #define pgd_bad(pgd)		(!(pgd_val(pgd) & 2))
-#define pgd_present(pgd)	(pgd_val(pgd))
+#define pgd_present(pgd)	(pgd_val(pgd))    /* 判断页全局目录表项是否存在 */
 
 static inline void set_pgd(pgd_t *pgdp, pgd_t pgd)
 {
@@ -513,7 +521,7 @@ static inline phys_addr_t pgd_page_paddr(pgd_t pgd)
 }
 
 /* Find an entry in the frst-level page table. */
-#define pud_index(addr)		(((addr) >> PUD_SHIFT) & (PTRS_PER_PUD - 1))
+#define pud_index(addr)		(((addr) >> PUD_SHIFT) & (PTRS_PER_PUD - 1)) /* 从虚拟地址中分解出页上层目录索引字段 */
 
 #define pud_offset_phys(dir, addr)	(pgd_page_paddr(*(dir)) + pud_index(addr) * sizeof(pud_t))
 #define pud_offset(dir, addr)		((pud_t *)__va(pud_offset_phys((dir), (addr))))
@@ -543,18 +551,19 @@ static inline phys_addr_t pgd_page_paddr(pgd_t pgd)
 #define pgd_ERROR(pgd)		__pgd_error(__FILE__, __LINE__, pgd_val(pgd))
 
 /* to find an entry in a page-table-directory */
-#define pgd_index(addr)		(((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
+#define pgd_index(addr)		(((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))	/* 从虚拟地址中分解出页全局目录索引字段 */
 
 #define pgd_offset_raw(pgd, addr)	((pgd) + pgd_index(addr))
 
-#define pgd_offset(mm, addr)	(pgd_offset_raw((mm)->pgd, (addr)))
+#define pgd_offset(mm, addr)	(pgd_offset_raw((mm)->pgd, (addr)))   /* 返回指定进程的虚拟地址对应的页全局目录表项的地址 */
 
 /* to find an entry in a kernel page-table-directory */
-#define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
+#define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)	  /* 在内核的页全局目录找到虚拟地址对应的表项 */
 
 #define pgd_set_fixmap(addr)	((pgd_t *)set_fixmap_offset(FIX_PGD, addr))
 #define pgd_clear_fixmap()	clear_fixmap(FIX_PGD)
 
+/* 修改物理页帧的权限值 */
 static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 {
 	const pteval_t mask = PTE_USER | PTE_PXN | PTE_UXN | PTE_RDONLY |
@@ -627,6 +636,7 @@ static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
 #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 
 #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
+/* 清空进程页表的一个项，并返回pte_t */
 static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
 				       unsigned long address, pte_t *ptep)
 {

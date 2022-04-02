@@ -49,36 +49,36 @@
  */
 #define ARM64_HW_PGTABLE_LEVEL_SHIFT(n)	((PAGE_SHIFT - 3) * (4 - (n)) + 3)
 
-#define PTRS_PER_PTE		(1 << (PAGE_SHIFT - 3))
+#define PTRS_PER_PTE		(1 << (PAGE_SHIFT - 3))  /* 直接页表的表项数量 */
 
 /*
  * PMD_SHIFT determines the size a level 2 page table entry can map.
  */
 #if CONFIG_PGTABLE_LEVELS > 2
-#define PMD_SHIFT		ARM64_HW_PGTABLE_LEVEL_SHIFT(2)
+#define PMD_SHIFT		ARM64_HW_PGTABLE_LEVEL_SHIFT(2) /* 页中间目录索引的偏移 */
 #define PMD_SIZE		(_AC(1, UL) << PMD_SHIFT)
 #define PMD_MASK		(~(PMD_SIZE-1))
-#define PTRS_PER_PMD		PTRS_PER_PTE
+#define PTRS_PER_PMD		PTRS_PER_PTE /* 页中间目录的表项数量 */
 #endif
 
 /*
  * PUD_SHIFT determines the size a level 1 page table entry can map.
  */
 #if CONFIG_PGTABLE_LEVELS > 3
-#define PUD_SHIFT		ARM64_HW_PGTABLE_LEVEL_SHIFT(1)
+#define PUD_SHIFT		ARM64_HW_PGTABLE_LEVEL_SHIFT(1)  /* 页上层目录索引的偏移 */
 #define PUD_SIZE		(_AC(1, UL) << PUD_SHIFT)
 #define PUD_MASK		(~(PUD_SIZE-1))
-#define PTRS_PER_PUD		PTRS_PER_PTE
+#define PTRS_PER_PUD		PTRS_PER_PTE    /* 页上层目录索引的表项数量 */
 #endif
 
 /*
  * PGDIR_SHIFT determines the size a top-level page table entry can map
  * (depending on the configuration, this level can be 0, 1 or 2).
  */
-#define PGDIR_SHIFT		ARM64_HW_PGTABLE_LEVEL_SHIFT(4 - CONFIG_PGTABLE_LEVELS)
-#define PGDIR_SIZE		(_AC(1, UL) << PGDIR_SHIFT)
+#define PGDIR_SHIFT		ARM64_HW_PGTABLE_LEVEL_SHIFT(4 - CONFIG_PGTABLE_LEVELS) /* 页全局目录索引的偏移 */
+#define PGDIR_SIZE		(_AC(1, UL) << PGDIR_SHIFT)  /* 页全局目录的大小 */
 #define PGDIR_MASK		(~(PGDIR_SIZE-1))
-#define PTRS_PER_PGD		(1 << (VA_BITS - PGDIR_SHIFT))
+#define PTRS_PER_PGD		(1 << (VA_BITS - PGDIR_SHIFT)) /* 页全局目录的表项数量 */
 
 /*
  * Section address mask and size definitions.
@@ -155,15 +155,15 @@
 #define PTE_TYPE_FAULT		(_AT(pteval_t, 0) << 0)
 #define PTE_TYPE_PAGE		(_AT(pteval_t, 3) << 0)
 #define PTE_TABLE_BIT		(_AT(pteval_t, 1) << 1)
-#define PTE_USER		(_AT(pteval_t, 1) << 6)		/* AP[1] */
-#define PTE_RDONLY		(_AT(pteval_t, 1) << 7)		/* AP[2] */
-#define PTE_SHARED		(_AT(pteval_t, 3) << 8)		/* SH[1:0], inner shareable */
-#define PTE_AF			(_AT(pteval_t, 1) << 10)	/* Access Flag */
-#define PTE_NG			(_AT(pteval_t, 1) << 11)	/* nG */
-#define PTE_DBM			(_AT(pteval_t, 1) << 51)	/* Dirty Bit Management */
-#define PTE_CONT		(_AT(pteval_t, 1) << 52)	/* Contiguous range */
-#define PTE_PXN			(_AT(pteval_t, 1) << 53)	/* Privileged XN */
-#define PTE_UXN			(_AT(pteval_t, 1) << 54)	/* User XN */
+#define PTE_USER		(_AT(pteval_t, 1) << 6)		/* AP[1] */ /* 选择是否允许 EL0 访问 */
+#define PTE_RDONLY		(_AT(pteval_t, 1) << 7)		/* AP[2] */ /* 阶段 1 转换中，AP[2]用来选择只读或读写 */
+#define PTE_SHARED		(_AT(pteval_t, 3) << 8)		/* 可共享性：00 表示不共享，01 是保留值，10 表示外部共享，11 表示内部共享 */
+#define PTE_AF			(_AT(pteval_t, 1) << 10)	/* Access Flag */ /* 是否被访问过 */
+#define PTE_NG			(_AT(pteval_t, 1) << 11)	/* nG */ /* 该转换是否为所有进程共享 */
+#define PTE_DBM			(_AT(pteval_t, 1) << 51)	/* Dirty Bit Management */ /* 页或内存块是否被修改过 */
+#define PTE_CONT		(_AT(pteval_t, 1) << 52)	/* Contiguous range */ /* 转换表项属于一个连续表项集合 */
+#define PTE_PXN			(_AT(pteval_t, 1) << 53)	/* Privileged XN */ /* Privileged eXecute Never 不允许在特权级别执行 */
+#define PTE_UXN			(_AT(pteval_t, 1) << 54)	/* User XN */ /* User eXecute Never 不允许异常级别0执行内核代码 */
 #define PTE_HYP_XN		(_AT(pteval_t, 1) << 54)	/* HYP XN */
 
 /*

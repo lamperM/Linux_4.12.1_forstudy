@@ -80,14 +80,14 @@ enum pageflags {
 	PG_lru,
 	PG_active,
 	PG_waiters,		/* Page has waiters, check its waitqueue. Must be bit #7 and in the same byte as "PG_locked" */
-	PG_slab,
+	PG_slab,        /* 表示该页属于 slab 分配器 */
 	PG_owner_priv_1,	/* Owner use. If pagecache, fs may use*/
 	PG_arch_1,
 	PG_reserved,
 	PG_private,		/* If pagecache, has fs-private data */
 	PG_private_2,		/* If pagecache, has fs aux data */
 	PG_writeback,		/* Page is under writeback */
-	PG_head,		/* A head page */
+	PG_head,		/* A head page */  /* 复合页的首页 */
 	PG_mappedtodisk,	/* Has blocks allocated on-disk */
 	PG_reclaim,		/* To be reclaimed asap */
 	PG_swapbacked,		/* Page is backed by RAM/swap */
@@ -141,6 +141,7 @@ enum pageflags {
 
 struct page;	/* forward declaration */
 
+/* 如果是复合页，返回其首页；否则直接返回该页 */
 static inline struct page *compound_head(struct page *page)
 {
 	unsigned long head = READ_ONCE(page->compound_head);
@@ -150,11 +151,12 @@ static inline struct page *compound_head(struct page *page)
 	return page;
 }
 
+/* 检查某页是否为复合页的尾页 */
 static __always_inline int PageTail(struct page *page)
 {
 	return READ_ONCE(page->compound_head) & 1;
 }
-
+/* 检查某页是否属于复合页 */
 static __always_inline int PageCompound(struct page *page)
 {
 	return test_bit(PG_head, &page->flags) || PageTail(page);

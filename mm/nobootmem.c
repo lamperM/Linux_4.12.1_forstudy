@@ -132,7 +132,7 @@ static unsigned long __init free_low_memory_core_early(void)
 	phys_addr_t start, end;
 	u64 i;
 
-	memblock_clear_hotplug(0, -1);
+	memblock_clear_hotplug(0, -1);  /* 热插拔相关，暂不考虑 */
 
 	for_each_reserved_mem_region(i, &start, &end)
 		reserve_bootmem_region(start, end);
@@ -197,7 +197,7 @@ unsigned long __init free_all_bootmem(void)
 {
 	unsigned long pages;
 
-	reset_all_zones_managed_pages();
+	reset_all_zones_managed_pages(); /* TODO: 为什么在这里要重新初始化为0呢？ */
 
 	pages = free_low_memory_core_early();
 	totalram_pages += pages;

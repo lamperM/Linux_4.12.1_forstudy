@@ -84,7 +84,7 @@ struct vm_area_struct;
  *
  * __GFP_ACCOUNT causes the allocation to be accounted to kmemcg.
  */
-#define __GFP_RECLAIMABLE ((__force gfp_t)___GFP_RECLAIMABLE)
+#define __GFP_RECLAIMABLE ((__force gfp_t)___GFP_RECLAIMABLE)  /* 可回收页 */
 #define __GFP_WRITE	((__force gfp_t)___GFP_WRITE)
 #define __GFP_HARDWALL   ((__force gfp_t)___GFP_HARDWALL)
 #define __GFP_THISNODE	((__force gfp_t)___GFP_THISNODE)
@@ -179,7 +179,7 @@ struct vm_area_struct;
  */
 #define __GFP_COLD	((__force gfp_t)___GFP_COLD)
 #define __GFP_NOWARN	((__force gfp_t)___GFP_NOWARN)
-#define __GFP_COMP	((__force gfp_t)___GFP_COMP)
+#define __GFP_COMP	((__force gfp_t)___GFP_COMP)  /* 复合页 */
 #define __GFP_ZERO	((__force gfp_t)___GFP_ZERO)
 #define __GFP_NOTRACK	((__force gfp_t)___GFP_NOTRACK)
 #define __GFP_NOTRACK_FALSE_POSITIVE (__GFP_NOTRACK)
@@ -273,6 +273,7 @@ struct vm_area_struct;
 #define GFP_MOVABLE_MASK (__GFP_RECLAIMABLE|__GFP_MOVABLE)
 #define GFP_MOVABLE_SHIFT 3
 
+/* 将分配标志 gfp_t 转换成迁移类型 */
 static inline int gfpflags_to_migratetype(const gfp_t gfp_flags)
 {
 	VM_WARN_ON((gfp_flags & GFP_MOVABLE_MASK) == GFP_MOVABLE_MASK);
@@ -346,6 +347,7 @@ static inline bool gfpflags_allow_blocking(const gfp_t gfp_flags)
 
 #if defined(CONFIG_ZONE_DEVICE) && (MAX_NR_ZONES-1) <= 4
 /* ZONE_DEVICE is not a valid GFP zone specifier */
+/* 区域类型占用的位数 */
 #define GFP_ZONES_SHIFT 2
 #else
 #define GFP_ZONES_SHIFT ZONES_SHIFT
@@ -383,6 +385,7 @@ static inline bool gfpflags_allow_blocking(const gfp_t gfp_flags)
 	| 1 << (___GFP_MOVABLE | ___GFP_DMA32 | ___GFP_DMA | ___GFP_HIGHMEM)  \
 )
 
+/* 从 gfp 中计算出区域的类型 */
 static inline enum zone_type gfp_zone(gfp_t flags)
 {
 	enum zone_type z;
@@ -419,6 +422,7 @@ static inline int gfp_zonelist(gfp_t flags)
  * For the normal case of non-DISCONTIGMEM systems the NODE_DATA() gets
  * optimized to &contig_page_data at compile-time.
  */
+/* 获取当前节点的候选区域链表 */
 static inline struct zonelist *node_zonelist(int nid, gfp_t flags)
 {
 	return NODE_DATA(nid)->node_zonelists + gfp_zonelist(flags);
@@ -483,14 +487,19 @@ extern struct page *alloc_pages_vma(gfp_t gfp_mask, int order,
 #define alloc_hugepage_vma(gfp_mask, vma, addr, order)	\
 	alloc_pages_vma(gfp_mask, order, vma, addr, numa_node_id(), true)
 #else
+/* 请求分配一个阶数为 order 的页块，返回一个 struct page */
 #define alloc_pages(gfp_mask, order) \
 		alloc_pages_node(numa_node_id(), gfp_mask, order)
+
 #define alloc_pages_vma(gfp_mask, order, vma, addr, node, false)\
 	alloc_pages(gfp_mask, order)
+
 #define alloc_hugepage_vma(gfp_mask, vma, addr, order)	\
 	alloc_pages(gfp_mask, order)
 #endif
-#define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0)
+
+#define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0)  /* 只分配一页 */
+
 #define alloc_page_vma(gfp_mask, vma, addr)			\
 	alloc_pages_vma(gfp_mask, 0, vma, addr, numa_node_id(), false)
 #define alloc_page_vma_node(gfp_mask, vma, addr, node)		\

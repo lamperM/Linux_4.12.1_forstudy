@@ -114,13 +114,14 @@ extern pmd_t *mm_find_pmd(struct mm_struct *mm, unsigned long address);
  * in __alloc_pages_slowpath(). All other functions pass the whole strucure
  * by a const pointer.
  */
+/* 保存相关参数 */
 struct alloc_context {
-	struct zonelist *zonelist;
-	nodemask_t *nodemask;
-	struct zoneref *preferred_zoneref;
-	int migratetype;
+	struct zonelist *zonelist;  /* 用于分配页面的区域链表 */
+	nodemask_t *nodemask;  /* 用于指定 node ? 目前 node 传入 NULL */
+	struct zoneref *preferred_zoneref;  /* 在快速路径中首先分配的区域 */
+	int migratetype;  /* 将要分配的迁移类型 */
 	enum zone_type high_zoneidx;
-	bool spread_dirty_pages;
+	bool spread_dirty_pages;  /* 脏区平衡相关 */
 };
 
 #define ac_classzone_idx(ac) zonelist_zone_idx(ac->preferred_zoneref)
@@ -142,6 +143,7 @@ struct alloc_context {
  *
  * Assumption: *_mem_map is contiguous at least up to MAX_ORDER
  */
+/* 计算 page_pfn 的同伴的页帧号 */
 static inline unsigned long
 __find_buddy_pfn(unsigned long page_pfn, unsigned int order)
 {

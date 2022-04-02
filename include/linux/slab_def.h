@@ -8,23 +8,23 @@
  */
 
 struct kmem_cache {
-	struct array_cache __percpu *cpu_cache;
+	struct array_cache __percpu *cpu_cache;  /* 数组缓存刚刚释放的对象 */
 
 /* 1) Cache tunables. Protected by slab_mutex */
-	unsigned int batchcount;
+	unsigned int batchcount; /* batchcount 一般用于本地缓冲池和共享缓冲池之间填充对象的数量 */
 	unsigned int limit;
 	unsigned int shared;
 
-	unsigned int size;
+	unsigned int size;   /* 每个 object 实际占的空间（加上偏移等字段） */
 	struct reciprocal_value reciprocal_buffer_size;
 /* 2) touched by every alloc & free from the backend */
 
-	unsigned int flags;		/* constant flags */
-	unsigned int num;		/* # of objs per slab */
+	unsigned int flags;		/* constant flags */  /* 一组标志位，决定分配器如何处理 cache */
+	unsigned int num;		/* # of objs per slab */ /* 每个SLAB能容纳的 object 数量 */
 
 /* 3) cache_grow/shrink */
 	/* order of pgs per slab (2^n) */
-	unsigned int gfporder;
+	unsigned int gfporder;  /* 实际定义了每个SLAB的大小 */
 
 	/* force GFP flags, e.g. GFP_DMA */
 	gfp_t allocflags;
@@ -35,13 +35,13 @@ struct kmem_cache {
 	unsigned int freelist_size;
 
 	/* constructor func */
-	void (*ctor)(void *obj);
+	void (*ctor)(void *obj);  /* 为复杂对象提供的构造函数 */
 
 /* 4) cache creation/removal */
-	const char *name;
-	struct list_head list;
+	const char *name; /* Cache 的名字 */
+	struct list_head list;  /* 包含所有 cache 的双向循环队列 */
 	int refcount;
-	int object_size;
+	int object_size;  /* 每个 object 的大小 */
 	int align;
 
 /* 5) statistics */

@@ -39,8 +39,9 @@ struct mem_cgroup;
  */
 struct page {
 	/* First double word block */
-	unsigned long flags;		/* Atomic flags, some possibly
-					 * updated asynchronously */
+	unsigned long flags;	/* Atomic flags, some possibly
+					         * updated asynchronously */
+					        /* 成员 flags 设置标志位 PG_slab ，表示页属于 SLAB 分配器。 */
 	union {
 		struct address_space *mapping;	/* If low bit clear, points to
 						 * inode address_space, or NULL.
@@ -50,14 +51,16 @@ struct page {
 						 * see PAGE_MAPPING_ANON below.
 						 */
 		void *s_mem;			/* slab first object */
-		atomic_t compound_mapcount;	/* first tail page */
+		                        /* 所属的 slab 中第一个 object 的地址（PA） */
+
+		atomic_t compound_mapcount;	/* first tail page */ /* 复合页的第一个尾页保存该复合页的映射计数 default:-1 */
 		/* page_deferred_list().next	 -- second tail page */
 	};
 
 	/* Second double word */
 	union {
 		pgoff_t index;		/* Our offset within mapping. */
-		void *freelist;		/* sl[aou]b first free object */
+		void *freelist;		/* sl[aou]b first free object */ /* 空闲对象链表; 数组存放的内容是空闲对象索引 */
 		/* page_deferred_list().prev	-- second tail page */
 	};
 
@@ -86,9 +89,10 @@ struct page {
 				 * in which case the value MUST BE <= -2.
 				 * See page-flags.h for more details.
 				 */
-				atomic_t _mapcount;
+				atomic_t _mapcount;  /* 该物理页被映射到多少个虚拟内存区域，初始值为 -1
+				                        加上 1 才是真实的映射计数。通常使用 page_mapcount 获取 */
 
-				unsigned int active;		/* SLAB */
+				unsigned int active;  /* SLAB */  /* 已分配对象的数量 */
 				struct {			/* SLUB */
 					unsigned inuse:16;
 					unsigned objects:15;
@@ -116,7 +120,7 @@ struct page {
 					 * protected by zone_lru_lock !
 					 * Can be used as a generic list
 					 * by the page owner.
-					 */
+					 */     /* 作为链表结点加入 node 中的其中一条链表 */
 		struct dev_pagemap *pgmap; /* ZONE_DEVICE pages are never on an
 					    * lru or handled by a slab
 					    * allocator, this points to the
@@ -139,6 +143,7 @@ struct page {
 		/* Tail pages of compound page */
 		struct {
 			unsigned long compound_head; /* If bit zero is set */
+			                             /* bit 0 被置位说明该页是复合页中的尾页 */
 
 			/* First tail page only */
 #ifdef CONFIG_64BIT
@@ -148,8 +153,8 @@ struct page {
 			 * unsigned int. It can help compiler generate better or
 			 * smaller code on some archtectures.
 			 */
-			unsigned int compound_dtor;
-			unsigned int compound_order;
+			unsigned int compound_dtor;  /* 第一个尾页设置该位，表示复合页释放函数数组的索引 */
+			unsigned int compound_order; /* 第一个尾页，bi复合页的阶数  */
 #else
 			unsigned short int compound_dtor;
 			unsigned short int compound_order;
@@ -176,6 +181,7 @@ struct page {
 						 * indicates order in the buddy
 						 * system if PG_buddy is set.
 						 */
+						/* 该参数表示多种含义：在伙伴系统系统中表示该页所属buddy 的 order */
 #if USE_SPLIT_PTE_PTLOCKS
 #if ALLOC_SPLIT_PTLOCKS
 		spinlock_t *ptl;
@@ -184,6 +190,7 @@ struct page {
 #endif
 #endif
 		struct kmem_cache *slab_cache;	/* SL[AU]B: Pointer to slab */
+		                                /* 指向所属的 slab cache */
 	};
 
 #ifdef CONFIG_MEMCG

@@ -60,15 +60,16 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/vmscan.h>
 
+/* 控制页面回收 */
 struct scan_control {
-	/* How many pages shrink_list() should reclaim */
-	unsigned long nr_to_reclaim;
+	/* How many pages shrink_list() should reclaim */ /* 应该回收多少页 */
+	unsigned long nr_to_reclaim;  
 
-	/* This context's GFP mask */
-	gfp_t gfp_mask;
+	/* This context's GFP mask */ /* 申请分配页的掩码 */
+	gfp_t gfp_mask;  
 
-	/* Allocation order */
-	int order;
+	/* Allocation order */ /* 申请分配页的阶数 */
+	int order;  
 
 	/*
 	 * Nodemask of nodes allowed by the caller. If NULL, all nodes
@@ -82,19 +83,19 @@ struct scan_control {
 	 */
 	struct mem_cgroup *target_mem_cgroup;
 
-	/* Scan (total_size >> priority) pages at once */
+	/* Scan (total_size >> priority) pages at once */ /* 扫描优先级 */
 	int priority;
 
-	/* The highest zone to isolate pages for reclaim from */
+	/* The highest zone to isolate pages for reclaim from */ /* 回收的最高内存区域 */
 	enum zone_type reclaim_idx;
 
-	/* Writepage batching in laptop mode; RECLAIM_WRITE */
+	/* Writepage batching in laptop mode; RECLAIM_WRITE */ /* 是否允许把修改过的文件页回写到存储设备 */
 	unsigned int may_writepage:1;
 
-	/* Can mapped pages be reclaimed? */
+	/* Can mapped pages be reclaimed? */  /* 是否允许回收页表映射的物理页 */
 	unsigned int may_unmap:1;
 
-	/* Can pages be swapped as part of reclaim? */
+	/* Can pages be swapped as part of reclaim? */  /* 是否允许把匿名页换出到交换区 */
 	unsigned int may_swap:1;
 
 	/*
@@ -111,10 +112,10 @@ struct scan_control {
 	unsigned int compaction_ready:1;
 
 	/* Incremented by the number of inactive pages that were scanned */
-	unsigned long nr_scanned;
+	unsigned long nr_scanned;  /* 用来报告扫描过的不活动页的数量 */
 
 	/* Number of pages freed so far during a call to shrink_zones() */
-	unsigned long nr_reclaimed;
+	unsigned long nr_reclaimed;  /* 用来报告回收了多少页 */
 };
 
 #ifdef ARCH_HAS_PREFETCH

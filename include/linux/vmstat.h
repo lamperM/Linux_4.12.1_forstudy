@@ -144,6 +144,7 @@ static inline unsigned long global_node_page_state(enum node_stat_item item)
 	return x;
 }
 
+/* 读取 zone 的某个状态 */
 static inline unsigned long zone_page_state(struct zone *zone,
 					enum zone_stat_item item)
 {

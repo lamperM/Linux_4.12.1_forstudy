@@ -4,6 +4,7 @@
 #define __ARCH_HAS_5LEVEL_HACK
 #define __PAGETABLE_P4D_FOLDED
 
+/* 4.11添加五级页表的支持 */
 #define P4D_SHIFT			PGDIR_SHIFT
 #define P4D_SIZE			PGDIR_SIZE
 #define P4D_MASK			PGDIR_MASK

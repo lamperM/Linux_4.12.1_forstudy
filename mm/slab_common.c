@@ -26,7 +26,7 @@
 #include "slab.h"
 
 enum slab_state slab_state;
-LIST_HEAD(slab_caches);
+LIST_HEAD(slab_caches); /* 所有 slab cache 的双向循环链表 */
 DEFINE_MUTEX(slab_mutex);
 struct kmem_cache *kmem_cache;
 
@@ -356,6 +356,7 @@ unsigned long calculate_alignment(unsigned long flags,
 	return ALIGN(align, sizeof(void *));
 }
 
+/* 创建一个新的 slab 描述符 */
 static struct kmem_cache *create_cache(const char *name,
 		size_t object_size, size_t size, size_t align,
 		unsigned long flags, void (*ctor)(void *),
@@ -369,6 +370,7 @@ static struct kmem_cache *create_cache(const char *name,
 	if (!s)
 		goto out;
 
+	/* 填入参数 */
 	s->name = name;
 	s->object_size = object_size;
 	s->size = size;
@@ -400,6 +402,7 @@ out_free_cache:
 /*
  * kmem_cache_create - Create a cache.
  * @name: A string which is used in /proc/slabinfo to identify this cache.
+ *        slab 描述符的名字
  * @size: The size of objects to be created in this cache.
  * @align: The required alignment for the objects.
  * @flags: SLAB flags
@@ -454,6 +457,7 @@ kmem_cache_create(const char *name, size_t size, size_t align,
 	 */
 	flags &= CACHE_CREATE_MASK;
 
+	/* 查找是否有现成的 slab 描述符可以复用 */
 	s = __kmem_cache_alias(name, size, align, flags, ctor);
 	if (s)
 		goto out_unlock;

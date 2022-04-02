@@ -30,6 +30,8 @@
 #if defined(CONFIG_FLATMEM)
 
 #define __pfn_to_page(pfn)	(mem_map + ((pfn) - ARCH_PFN_OFFSET))
+
+/* struct page 结构体得到页帧号 */
 #define __page_to_pfn(page)	((unsigned long)((page) - mem_map) + \
 				 ARCH_PFN_OFFSET)
 #elif defined(CONFIG_DISCONTIGMEM)
@@ -46,7 +48,8 @@
 	(unsigned long)(__pg - __pgdat->node_mem_map) +			\
 	 __pgdat->node_start_pfn;					\
 })
-
+My partner choose to answer the first question。
+He thinks that love is indeed measurable. But it is not to measure like the size of house or amount of saving, It can be measured by patience and care, which are about  spiritual rather than Material .
 #elif defined(CONFIG_SPARSEMEM_VMEMMAP)
 
 /* memmap is virtually contiguous.  */

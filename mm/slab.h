@@ -385,7 +385,7 @@ static inline struct kmem_cache *cache_from_obj(struct kmem_cache *s, void *x)
 
 	page = virt_to_head_page(x);
 	cachep = page->slab_cache;
-	if (slab_equal_or_root(cachep, s))
+	if (slab_equal_or_root(cachep, s))  /* 确保参数的 cache 正确 */
 		return cachep;
 
 	pr_err("%s: Wrong slab cache. %s but object is from %s\n",
@@ -465,19 +465,21 @@ static inline void slab_post_alloc_hook(struct kmem_cache *s, gfp_t flags,
  * The slab lists for all objects.
  */
 struct kmem_cache_node {
-	spinlock_t list_lock;
+	spinlock_t list_lock;  
 
 #ifdef CONFIG_SLAB
-	struct list_head slabs_partial;	/* partial list first, better asm code */
-	struct list_head slabs_full;
-	struct list_head slabs_free;
-	unsigned long total_slabs;	/* length of all slab lists */
+	struct list_head slabs_partial;	/* partial list first, better asm code */ 
+	                                /* 将部分空闲的 slab 链接 */
+	struct list_head slabs_full;	/* 没有空闲对象的 slab */
+	struct list_head slabs_free;    /* 所有对象都空闲的 slab */
+
+	unsigned long total_slabs;	/* length of all slab lists */ /* 所有链表中 slab 的数量 */
 	unsigned long free_slabs;	/* length of free slab list only */
-	unsigned long free_objects;
-	unsigned int free_limit;
-	unsigned int colour_next;	/* Per-node cache coloring */
-	struct array_cache *shared;	/* shared per node */
-	struct alien_cache **alien;	/* on other nodes */
+	unsigned long free_objects; /* 空闲 Object 的数量 */
+	unsigned int free_limit;    /* 空闲 object 的数量上限 */
+	unsigned int colour_next;	/* Per-node cache coloring */ 
+	struct array_cache *shared;	/* shared per node */ /* 指向多 CPU 之间共享的 Array cache */
+	struct alien_cache **alien;	/* on other nodes */ /* 指向远程节点的 Array cache */
 	unsigned long next_reap;	/* updated without locking */
 	int free_touched;		/* updated without locking */
 #endif

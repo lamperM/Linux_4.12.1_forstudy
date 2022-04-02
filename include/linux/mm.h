@@ -463,8 +463,8 @@ static inline int pgd_devmap(pgd_t pgd)
  */
 static inline int put_page_testzero(struct page *page)
 {
-	VM_BUG_ON_PAGE(page_ref_count(page) == 0, page);
-	return page_ref_dec_and_test(page);
+	VM_BUG_ON_PAGE(page_ref_count(page) == 0, page);  /* _refcount = 0 说明已经释放了 */
+	return page_ref_dec_and_test(page);  /* -1 然后检查是否为 0 */
 }
 
 /*
@@ -627,11 +627,12 @@ enum compound_dtor_id {
 };
 extern compound_page_dtor * const compound_page_dtors[];
 
+/* 设置释放函数数组 compound_page_dtors 的索引 */
 static inline void set_compound_page_dtor(struct page *page,
 		enum compound_dtor_id compound_dtor)
 {
 	VM_BUG_ON_PAGE(compound_dtor >= NR_COMPOUND_DTORS, page);
-	page[1].compound_dtor = compound_dtor;
+	page[1].compound_dtor = compound_dtor;  
 }
 
 static inline compound_page_dtor *get_compound_page_dtor(struct page *page)
@@ -647,6 +648,7 @@ static inline unsigned int compound_order(struct page *page)
 	return page[1].compound_order;
 }
 
+/* 设置复合页的阶数 */
 static inline void set_compound_order(struct page *page, unsigned int order)
 {
 	page[1].compound_order = order;
@@ -778,6 +780,7 @@ int finish_mkwrite_fault(struct vm_fault *vmf);
 #define LAST_CPUPID_MASK	((1UL << LAST_CPUPID_SHIFT) - 1)
 #define ZONEID_MASK		((1UL << ZONEID_SHIFT) - 1)
 
+/* 物理页所属的内存区域的类型 */
 static inline enum zone_type page_zonenum(const struct page *page)
 {
 	return (page->flags >> ZONES_PGSHIFT) & ZONES_MASK;
@@ -843,6 +846,7 @@ static inline int zone_to_nid(struct zone *zone)
 #ifdef NODE_NOT_IN_PAGE_FLAGS
 extern int page_to_nid(const struct page *page);
 #else
+/* 用来得到物理页所属的内存节点的编号 */
 static inline int page_to_nid(const struct page *page)
 {
 	return (page->flags >> NODES_PGSHIFT) & NODES_MASK;
@@ -959,6 +963,7 @@ static inline bool cpupid_match_pid(struct task_struct *task, int cpupid)
 }
 #endif /* CONFIG_NUMA_BALANCING */
 
+/* 返回 page 所属的 zone 指针 */
 static inline struct zone *page_zone(const struct page *page)
 {
 	return &NODE_DATA(page_to_nid(page))->node_zones[page_zonenum(page)];
@@ -2532,6 +2537,7 @@ static inline bool debug_guardpage_enabled(void)
 	return _debug_guardpage_enabled;
 }
 
+/* page_is_guard 与 Debug 警卫页相关，暂不研究 */
 static inline bool page_is_guard(struct page *page)
 {
 	struct page_ext *page_ext;

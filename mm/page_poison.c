@@ -29,11 +29,12 @@ bool page_poisoning_enabled(void)
 		debug_pagealloc_enabled()));
 }
 
+/* 将物理页填充为 PAGE_POISON */
 static void poison_page(struct page *page)
 {
-	void *addr = kmap_atomic(page);
+	void *addr = kmap_atomic(page);  /* 临时把物理页映射到内核的地址空间 */
 
-	memset(addr, PAGE_POISON, PAGE_SIZE);
+	memset(addr, PAGE_POISON, PAGE_SIZE);  /* 将页面填充 PAGE_POISON */
 	kunmap_atomic(addr);
 }
 

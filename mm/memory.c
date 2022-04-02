@@ -88,7 +88,7 @@
 unsigned long max_mapnr;
 EXPORT_SYMBOL(max_mapnr);
 
-struct page *mem_map;
+struct page *mem_map;  /* 全局 page 数组指针，总是指向首地址 */
 EXPORT_SYMBOL(mem_map);
 #endif
 

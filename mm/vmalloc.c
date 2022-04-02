@@ -1,4 +1,4 @@
-/*
+/* /*
  *  linux/mm/vmalloc.c
  *
  *  Copyright (C) 1993  Linus Torvalds
@@ -226,7 +226,7 @@ static int vmap_page_range_noflush(unsigned long start, unsigned long end,
 	int nr = 0;
 
 	BUG_ON(addr >= end);
-	pgd = pgd_offset_k(addr);
+	pgd = pgd_offset_k(addr);  /* 找到 addr 对应的页全局目录表项 */
 	do {
 		next = pgd_addr_end(addr, end);
 		err = vmap_p4d_range(pgd, addr, next, prot, pages, &nr);
@@ -360,6 +360,7 @@ static struct vmap_area *__find_vmap_area(unsigned long addr)
 	return NULL;
 }
 
+/* 将 va 加入到红黑树中 */
 static void __insert_vmap_area(struct vmap_area *va)
 {
 	struct rb_node **p = &vmap_area_root.rb_node;
@@ -400,6 +401,7 @@ static BLOCKING_NOTIFIER_HEAD(vmap_notify_list);
  * Allocate a region of KVA of the specified size and alignment, within the
  * vstart and vend.
  */
+/* 负责从 vmalloc 区找到大小为 size 的空间 */
 static struct vmap_area *alloc_vmap_area(unsigned long size,
 				unsigned long align,
 				unsigned long vstart, unsigned long vend,
@@ -411,12 +413,13 @@ static struct vmap_area *alloc_vmap_area(unsigned long size,
 	int purged = 0;
 	struct vmap_area *first;
 
-	BUG_ON(!size);
-	BUG_ON(offset_in_page(size));
-	BUG_ON(!is_power_of_2(align));
+	BUG_ON(!size);  /* 长度不能为 0 */
+	BUG_ON(offset_in_page(size));  /* 分配的大小必须按页面大小对齐 */
+	BUG_ON(!is_power_of_2(align)); /*  */
 
 	might_sleep();
 
+    /* 申请 vmap_area 的空间 */
 	va = kmalloc_node(sizeof(struct vmap_area),
 			gfp_mask & GFP_RECLAIM_MASK, node);
 	if (unlikely(!va))
@@ -460,12 +463,12 @@ nocache:
 		if (addr + size < addr)
 			goto overflow;
 
-	} else {
-		addr = ALIGN(vstart, align);
+	} else {  /* 第一次或free_vmap_cache为空会走这个流程 */
+		addr = ALIGN(vstart, align);  /* addr = vstart 按 2^align 对齐后 */
 		if (addr + size < addr)
 			goto overflow;
 
-		n = vmap_area_root.rb_node;
+		n = vmap_area_root.rb_node;  /* 红黑树的根节点 */
 		first = NULL;
 
 		while (n) {
@@ -485,8 +488,9 @@ nocache:
 	}
 
 	/* from the starting point, walk areas until a suitable hole is found */
+	/* 找到合适的红黑树结点后，看是否能分割出一个洞来 */
 	while (addr + size > first->va_start && addr + size <= vend) {
-		if (addr + cached_hole_size < first->va_start)
+		if (addr + cached_hole_size < first->va_start)  /* 红黑树节点之间的最大间距 */
 			cached_hole_size = first->va_start - addr;
 		addr = ALIGN(first->va_end, align);
 		if (addr + size < addr)
@@ -495,9 +499,10 @@ nocache:
 		if (list_is_last(&first->list, &vmap_area_list))
 			goto found;
 
-		first = list_next_entry(first, list);
+		first = list_next_entry(first, list);  /* 下一个节点 */
 	}
 
+/*  跳到这一定是找到了大小为 size 的空间 */
 found:
 	if (addr + size > vend)
 		goto overflow;
@@ -1348,6 +1353,7 @@ void unmap_kernel_range(unsigned long addr, unsigned long size)
 }
 EXPORT_SYMBOL_GPL(unmap_kernel_range);
 
+/* 建立虚拟-物理页面映射 */
 int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pages)
 {
 	unsigned long addr = (unsigned long)area->addr;
@@ -1360,6 +1366,7 @@ int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page **pages)
 }
 EXPORT_SYMBOL_GPL(map_vm_area);
 
+/* 设置 vm_struct */
 static void setup_vmalloc_vm(struct vm_struct *vm, struct vmap_area *va,
 			      unsigned long flags, const void *caller)
 {
@@ -1392,7 +1399,7 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
 	struct vm_struct *area;
 
 	BUG_ON(in_interrupt());
-	size = PAGE_ALIGN(size);
+	size = PAGE_ALIGN(size);  /* 再一次以页面大小对齐 */
 	if (unlikely(!size))
 		return NULL;
 
@@ -1400,19 +1407,22 @@ static struct vm_struct *__get_vm_area_node(unsigned long size,
 		align = 1ul << clamp_t(int, get_count_order_long(size),
 				       PAGE_SHIFT, IOREMAP_MAX_ORDER);
 
+	/* 初始化一个 struct vm_struct 结构体来描述这个 vmalloc 区域 */
 	area = kzalloc_node(sizeof(*area), gfp_mask & GFP_RECLAIM_MASK, node);
 	if (unlikely(!area))
 		return NULL;
 
-	if (!(flags & VM_NO_GUARD))
-		size += PAGE_SIZE;
+	if (!(flags & VM_NO_GUARD))  
+		size += PAGE_SIZE;    /* 需要额外分配一个 guard page  */
 
+	/* 负责从 vmalloc 区分配大小为 size 的空间 */
 	va = alloc_vmap_area(size, align, start, end, node, gfp_mask);
 	if (IS_ERR(va)) {
 		kfree(area);
 		return NULL;
 	}
 
+	/* 设置 vm_struct */
 	setup_vmalloc_vm(area, va, flags, caller);
 
 	return area;
@@ -1671,19 +1681,22 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
 	const gfp_t nested_gfp = (gfp_mask & GFP_RECLAIM_MASK) | __GFP_ZERO;
 	const gfp_t alloc_mask = gfp_mask | __GFP_HIGHMEM | __GFP_NOWARN;
 
-	nr_pages = get_vm_area_size(area) >> PAGE_SHIFT;
-	array_size = (nr_pages * sizeof(struct page *));
+	nr_pages = get_vm_area_size(area) >> PAGE_SHIFT;  /* 共需要分配几个页面 */
+	array_size = (nr_pages * sizeof(struct page *));  /* 共需要几个管理页面的数据结构：struct page */
 
 	area->nr_pages = nr_pages;
+
 	/* Please note that the recursion is strictly bounded. */
+	/* 分配这些 struct page 的空间 */
 	if (array_size > PAGE_SIZE) {
 		pages = __vmalloc_node(array_size, 1, nested_gfp|__GFP_HIGHMEM,
 				PAGE_KERNEL, node, area->caller);
 	} else {
 		pages = kmalloc_node(array_size, nested_gfp, node);
 	}
+	
 	area->pages = pages;
-	if (!area->pages) {
+	if (!area->pages) {  /* struct page 分配空间失败 */
 		remove_vm_area(area->addr);
 		kfree(area);
 		return NULL;
@@ -1697,6 +1710,7 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
 			goto fail_no_warn;
 		}
 
+		/* 调用伙伴系统分配 物理页面 */
 		if (node == NUMA_NO_NODE)
 			page = alloc_page(alloc_mask);
 		else
@@ -1750,7 +1764,7 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
 	void *addr;
 	unsigned long real_size = size;
 
-	size = PAGE_ALIGN(size);
+	size = PAGE_ALIGN(size);  /* vmalloc 分配的大小还是必须和页面对齐的 */
 	if (!size || (size >> PAGE_SHIFT) > totalram_pages)
 		goto fail;
 
@@ -2778,3 +2792,4 @@ module_init(proc_vmalloc_init);
 
 #endif
 
+ */

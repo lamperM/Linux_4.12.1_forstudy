@@ -29,23 +29,26 @@ struct notifier_block;		/* in notifier.h */
 #define IOREMAP_MAX_ORDER	(7 + PAGE_SHIFT)	/* 128 pages */
 #endif
 
+/* 每个 vmap_area 实例关联一个 vm_struct 实例 */
 struct vm_struct {
 	struct vm_struct	*next;
-	void			*addr;
+	void			*addr;  /* 起始虚拟地址 */
 	unsigned long		size;
 	unsigned long		flags;
-	struct page		**pages;
+	struct page		**pages;  /* 指向 page 指针数组 */
 	unsigned int		nr_pages;
 	phys_addr_t		phys_addr;
 	const void		*caller;
 };
 
+/* 对应一块虚拟内存区域，给内核使用 */
 struct vmap_area {
-	unsigned long va_start;
-	unsigned long va_end;
+	unsigned long va_start;  /* 起始虚拟地址 */
+	unsigned long va_end;    /* 结束虚拟地址 */
 	unsigned long flags;
 	struct rb_node rb_node;         /* address sorted rbtree */
 	struct list_head list;          /* address sorted list */
+	                                /* 加入链表 vmap_area_list */
 	struct llist_node purge_list;    /* "lazy purge" list */
 	struct vm_struct *vm;
 	struct rcu_head rcu_head;
@@ -113,8 +116,10 @@ void vmalloc_sync_all(void);
 
 static inline size_t get_vm_area_size(const struct vm_struct *area)
 {
+	/* area->size 是按页对齐的 */
 	if (!(area->flags & VM_NO_GUARD))
 		/* return actual size without guard page */
+		/* 返回的 size 不用包含 guard page */
 		return area->size - PAGE_SIZE;
 	else
 		return area->size;

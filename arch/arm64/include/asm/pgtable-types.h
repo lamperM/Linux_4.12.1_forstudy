@@ -30,9 +30,19 @@ typedef u64 pgdval_t;
 /*
  * These are used to make use of C type-checking..
  */
+/* 
+ * commenter: Lu Wang
+ * 
+ * pgd_t, pud_t, pmd_t, pte_t 其实都是无符号的整型
+ * 之所以定义为结构体，是出于两个原因：
+ * 1. 起到类型保护的作用，以使得不被滥用
+ * 2. 为了满足某些特性。如为了存储用于保护的位
+ *    内核中使用 pgprot_t 定义了一些标志位。
+ */
+
 typedef struct { pteval_t pte; } pte_t;
 #define pte_val(x)	((x).pte)
-#define __pte(x)	((pte_t) { (x) } )
+#define __pte(x)	((pte_t) { (x) } )  /* 将u64转换为 pte_t */
 
 #if CONFIG_PGTABLE_LEVELS > 2
 typedef struct { pmdval_t pmd; } pmd_t;
@@ -47,8 +57,8 @@ typedef struct { pudval_t pud; } pud_t;
 #endif
 
 typedef struct { pgdval_t pgd; } pgd_t;
-#define pgd_val(x)	((x).pgd)
-#define __pgd(x)	((pgd_t) { (x) } )
+#define pgd_val(x)	((x).pgd)   /* 将pgd_t类型转为u64 */
+#define __pgd(x)	((pgd_t) { (x) } )  /* 将u64转换位pgd_t */
 
 typedef struct { pteval_t pgprot; } pgprot_t;
 #define pgprot_val(x)	((x).pgprot)

@@ -20,11 +20,15 @@
 #include <asm/page.h>
 
 /* Free memory management - zoned buddy allocator.  */
+/* 伙伴系统的最大页阶数 */
+/* 实际上是可分配的最大阶数加 1，即实际上最大 2^(MAX_ORDER-1) 个页 */
 #ifndef CONFIG_FORCE_MAX_ZONEORDER
 #define MAX_ORDER 11
 #else
 #define MAX_ORDER CONFIG_FORCE_MAX_ZONEORDER
 #endif
+
+/* 伙伴系统最大的页数量 */
 #define MAX_ORDER_NR_PAGES (1 << (MAX_ORDER - 1))
 
 /*
@@ -33,12 +37,14 @@
  * coalesce naturally under reasonable reclaim pressure and those which
  * will not.
  */
-#define PAGE_ALLOC_COSTLY_ORDER 3
+/* costly 的页的大小定义 */
+#define PAGE_ALLOC_COSTLY_ORDER 3  
+
 
 enum migratetype {
-	MIGRATE_UNMOVABLE,
-	MIGRATE_MOVABLE,
-	MIGRATE_RECLAIMABLE,
+	MIGRATE_UNMOVABLE,  /* 不可移动 */
+	MIGRATE_MOVABLE,    /* 可移动 */
+	MIGRATE_RECLAIMABLE,/* 可回收 */
 	MIGRATE_PCPTYPES,	/* the number of types on the pcp lists */
 	MIGRATE_HIGHATOMIC = MIGRATE_PCPTYPES,
 #ifdef CONFIG_CMA
@@ -88,13 +94,16 @@ extern int page_group_by_mobility_disabled;
 #define NR_MIGRATETYPE_BITS (PB_migrate_end - PB_migrate + 1)
 #define MIGRATETYPE_MASK ((1UL << NR_MIGRATETYPE_BITS) - 1)
 
+/* 获取页块的迁移类型 */
 #define get_pageblock_migratetype(page)					\
 	get_pfnblock_flags_mask(page, page_to_pfn(page),		\
 			PB_migrate_end, MIGRATETYPE_MASK)
 
+
+
 struct free_area {
-	struct list_head	free_list[MIGRATE_TYPES];
-	unsigned long		nr_free;
+	struct list_head	free_list[MIGRATE_TYPES];  /* 将空闲页链表按照迁移类型拆分 */
+	unsigned long		nr_free;  /* 空闲页块的数量 */
 };
 
 struct pglist_data;
@@ -265,11 +274,16 @@ enum zone_watermarks {
 
 struct per_cpu_pages {
 	int count;		/* number of pages in the list */
+	                /* 链表里面页的数量 */
+
 	int high;		/* high watermark, emptying needed */
+	                /* 如果页的数量达到高水线，需要返还给伙伴分配器 */
+
 	int batch;		/* chunk size for buddy add/remove */
+	                /* 批量添加或删除的页数量  */
 
 	/* Lists of pages, one per migrate type stored on the pcp-lists */
-	struct list_head lists[MIGRATE_PCPTYPES];
+	struct list_head lists[MIGRATE_PCPTYPES];  /* 每种迁移类型一个页链表 */
 };
 
 struct per_cpu_pageset {
@@ -283,6 +297,7 @@ struct per_cpu_pageset {
 #endif
 };
 
+/* pcp 的状态位 */
 struct per_cpu_nodestat {
 	s8 stat_threshold;
 	s8 vm_node_stat_diff[NR_VM_NODE_STAT_ITEMS];
@@ -290,6 +305,7 @@ struct per_cpu_nodestat {
 
 #endif /* !__GENERATING_BOUNDS.H */
 
+/* 内存区域的类型 */
 enum zone_type {
 #ifdef CONFIG_ZONE_DMA
 	/*
@@ -325,7 +341,7 @@ enum zone_type {
 	 * performed on pages in ZONE_NORMAL if the DMA devices support
 	 * transfers to all addressable memory.
 	 */
-	ZONE_NORMAL,
+	ZONE_NORMAL,    /* 也称线性映射区 */
 #ifdef CONFIG_HIGHMEM
 	/*
 	 * A memory area that is only addressable by the kernel through
@@ -335,11 +351,11 @@ enum zone_type {
 	 * table entries on i386) for each page that the kernel needs to
 	 * access.
 	 */
-	ZONE_HIGHMEM,
+	ZONE_HIGHMEM,  /* Only 32位 */
 #endif
-	ZONE_MOVABLE,
+	ZONE_MOVABLE,  /* 伪内存区域，用来防止内存碎片 */
 #ifdef CONFIG_ZONE_DEVICE
-	ZONE_DEVICE,
+	ZONE_DEVICE,   /* 为支持持久内存 (persistent memory) 热插拔增加的内存区域 */
 #endif
 	__MAX_NR_ZONES
 
@@ -347,11 +363,12 @@ enum zone_type {
 
 #ifndef __GENERATING_BOUNDS_H
 
+/*  */
 struct zone {
 	/* Read-mostly fields */
 
 	/* zone watermarks, access with *_wmark_pages(zone) macros */
-	unsigned long watermark[NR_WMARK];
+	unsigned long watermark[NR_WMARK];  /* 区域水线，使用 *_wmark_pages(zone) 宏访问 */
 
 	unsigned long nr_reserved_highatomic;
 
@@ -364,24 +381,26 @@ struct zone {
 	 * recalculated at runtime if the sysctl_lowmem_reserve_ratio sysctl
 	 * changes.
 	 */
-	long lowmem_reserve[MAX_NR_ZONES];
+	long lowmem_reserve[MAX_NR_ZONES]; /* 存放必须保存不能借出的页数 
+	                                zone[i]->lowmem_reserve[j]表示区域类型 i 应该保留多少页不能借给区域类型 j*/
+	                         
 
 #ifdef CONFIG_NUMA
 	int node;
 #endif
-	struct pglist_data	*zone_pgdat;
-	struct per_cpu_pageset __percpu *pageset;
+	struct pglist_data	*zone_pgdat;  /* 指向所属的内存结点 pg_data_t */
+	struct per_cpu_pageset __percpu *pageset;  /* Per-CPU 页集合 */
 
 #ifndef CONFIG_SPARSEMEM
 	/*
 	 * Flags for a pageblock_nr_pages block. See pageblock-flags.h.
 	 * In SPARSEMEM, this map is stored in struct mem_section
 	 */
-	unsigned long		*pageblock_flags;
+	unsigned long		*pageblock_flags;  /* 指向页块标志位图 */
 #endif /* CONFIG_SPARSEMEM */
 
 	/* zone_start_pfn == zone_start_paddr >> PAGE_SHIFT */
-	unsigned long		zone_start_pfn;
+	unsigned long		zone_start_pfn;  /* 该区域中起始页面的 页帧号 */
 
 	/*
 	 * spanned_pages is the total pages spanned by the zone, including
@@ -424,9 +443,9 @@ struct zone {
 	 * adjust_managed_page_count() should be used instead of directly
 	 * touching zone->managed_pages and totalram_pages.
 	 */
-	unsigned long		managed_pages;
-	unsigned long		spanned_pages;
-	unsigned long		present_pages;
+	unsigned long		managed_pages;  /* 该区域中被 伙伴系统 管理的页面数量（减掉用于保存 struct page） */
+	unsigned long		spanned_pages;  /* 该区域总共包含的页面数量，包括空洞 */
+	unsigned long		present_pages;  /* 该区域实际管理的页面数量，不包括空洞 */
 
 	const char		*name;
 
@@ -450,13 +469,14 @@ struct zone {
 	ZONE_PADDING(_pad1_)
 
 	/* free areas of different sizes */
-	struct free_area	free_area[MAX_ORDER];
+	struct free_area	free_area[MAX_ORDER];  /* 不同长度的空闲物理区域
+	                                              空闲区域位图，伙伴系统使用 */
 
 	/* zone flags, see below */
 	unsigned long		flags;
 
 	/* Primarily protects free_area */
-	spinlock_t		lock;
+	spinlock_t		lock;  /* 并行访问时进行保护的自旋锁 */
 
 	/* Write-intensive fields used by compaction and vmstats. */
 	ZONE_PADDING(_pad2_)
@@ -465,6 +485,7 @@ struct zone {
 	 * When free pages are below this point, additional steps are taken
 	 * when reading the number of free pages to avoid per-cpu counter
 	 * drift allowing watermarks to be breached
+	 * 当空闲页面小于该值时，需要把 percpu pageset中的空闲页面也算上。
 	 */
 	unsigned long percpu_drift_mark;
 
@@ -512,11 +533,13 @@ enum pgdat_flags {
 	PGDAT_RECLAIM_LOCKED,		/* prevents concurrent reclaim */
 };
 
+/* 指定 zone 的结束页帧号 */
 static inline unsigned long zone_end_pfn(const struct zone *zone)
 {
 	return zone->zone_start_pfn + zone->spanned_pages;
 }
 
+/* 判断该页帧号是否在 zone 范围内 */
 static inline bool zone_spans_pfn(const struct zone *zone, unsigned long pfn)
 {
 	return zone->zone_start_pfn <= pfn && pfn < zone_end_pfn(zone);
@@ -543,13 +566,14 @@ static inline bool zone_is_empty(struct zone *zone)
 #define MAX_ZONES_PER_ZONELIST (MAX_NUMNODES * MAX_NR_ZONES)
 
 enum {
-	ZONELIST_FALLBACK,	/* zonelist with fallback */
-#ifdef CONFIG_NUMA
+	ZONELIST_FALLBACK,	/* zonelist with fallback */ /* 包含所有内存节点的备用区域列表 */
+#ifdef CONFIG_NUMA   
 	/*
 	 * The NUMA zonelists are doubled because we need zonelists that
 	 * restrict the allocations to a single node for __GFP_THISNODE.
 	 */
 	ZONELIST_NOFALLBACK,	/* zonelist without fallback (__GFP_THISNODE) */
+	                        /* 只包含当前内存节点的备用区域列表(__GFP_THISNODE) */
 #endif
 	MAX_ZONELISTS
 };
@@ -578,7 +602,7 @@ struct zoneref {
  * zonelist_node_idx()	- Return the index of the node for an entry
  */
 struct zonelist {
-	struct zoneref _zonerefs[MAX_ZONES_PER_ZONELIST + 1];
+	struct zoneref _zonerefs[MAX_ZONES_PER_ZONELIST + 1];  /* 页面分配请求的候选列表 */
 };
 
 #ifndef CONFIG_DISCONTIGMEM
@@ -598,18 +622,21 @@ extern struct page *mem_map;
  * per-zone basis.
  */
 struct bootmem_data;
+
+/* 内存节点
+   在 NUMA 系统中，每个 node 节点有一个 pg_data_t */
 typedef struct pglist_data {
-	struct zone node_zones[MAX_NR_ZONES];
-	struct zonelist node_zonelists[MAX_ZONELISTS];
-	int nr_zones;
+	struct zone node_zones[MAX_NR_ZONES];  /* 将 zone f分类，eg: ZONE_DMA, ZONE_NORMAL */
+	struct zonelist node_zonelists[MAX_ZONELISTS];  /* 候选区域列表 */
+	int nr_zones;  /* 该内存节点中的 zone 数目 */
 #ifdef CONFIG_FLAT_NODE_MEM_MAP	/* means !SPARSEMEM */
-	struct page *node_mem_map;
+	struct page *node_mem_map;  /* 页描述符 struct page数组，不一定是数组首地址 */
 #ifdef CONFIG_PAGE_EXTENSION
 	struct page_ext *node_page_ext;
 #endif
 #endif
 #ifndef CONFIG_NO_BOOTMEM
-	struct bootmem_data *bdata;
+	struct bootmem_data *bdata;  /* 指向内存引导程序 */
 #endif
 #ifdef CONFIG_MEMORY_HOTPLUG
 	/*
@@ -624,15 +651,19 @@ typedef struct pglist_data {
 	 */
 	spinlock_t node_size_lock;
 #endif
-	unsigned long node_start_pfn;
+	unsigned long node_start_pfn;  /* 该内存节点的起始页帧号 */
 	unsigned long node_present_pages; /* total number of physical pages */
+	                                  /* 实际存在的物理页总数 */
+
 	unsigned long node_spanned_pages; /* total size of physical page
-					     range, including holes */
-	int node_id;
+					                     range, including holes */
+									  /* 包括空洞的物理页总数 */
+	int node_id;  /* 内存节点的 ID */
 	wait_queue_head_t kswapd_wait;
 	wait_queue_head_t pfmemalloc_wait;
 	struct task_struct *kswapd;	/* Protected by
-					   mem_hotplug_begin/end() */
+					   mem_hotplug_begin/end() */  /* 内核异步回收线程 */
+					   
 	int kswapd_order;
 	enum zone_type kswapd_classzone_idx;
 
@@ -657,6 +688,7 @@ typedef struct pglist_data {
 	/*
 	 * This is a per-node reserve of pages that are not available
 	 * to userspace allocations.
+	 * 每个结点保留的不能被用户空间分配的页面数目
 	 */
 	unsigned long		totalreserve_pages;
 
@@ -839,6 +871,7 @@ static inline int zone_movable_is_highmem(void)
 }
 #endif
 
+/* ARM64 一般认为物理内存够用，不用划分 highmem，默认返回 0 */
 static inline int is_highmem_idx(enum zone_type idx)
 {
 #ifdef CONFIG_HIGHMEM
@@ -887,8 +920,9 @@ extern char numa_zonelist_order[];
 
 #ifndef CONFIG_NEED_MULTIPLE_NODES
 
+/* UMA架构，且使用 Flat 内存模型中，仅有一个内存节点 contig_page_data */
 extern struct pglist_data contig_page_data;
-#define NODE_DATA(nid)		(&contig_page_data)
+#define NODE_DATA(nid)		(&contig_page_data)  
 #define NODE_MEM_MAP(nid)	mem_map
 
 #else /* CONFIG_NEED_MULTIPLE_NODES */
@@ -962,7 +996,7 @@ struct zoneref *__next_zones_zonelist(struct zoneref *z,
  * This function returns the next zone at or below a given zone index that is
  * within the allowed nodemask using a cursor as the starting point for the
  * search. The zoneref returned is a cursor that represents the current zone
- * being examined. It should be advanced by one before calling
+ * being examined. It should be advanced by one before call ing
  * next_zones_zonelist again.
  */
 static __always_inline struct zoneref *next_zones_zonelist(struct zoneref *z,

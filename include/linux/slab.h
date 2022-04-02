@@ -23,7 +23,7 @@
 #define SLAB_CONSISTENCY_CHECKS	0x00000100UL	/* DEBUG: Perform (expensive) checks on alloc/free */
 #define SLAB_RED_ZONE		0x00000400UL	/* DEBUG: Red zone objs in a cache */
 #define SLAB_POISON		0x00000800UL	/* DEBUG: Poison objects */
-#define SLAB_HWCACHE_ALIGN	0x00002000UL	/* Align objs on cache lines */
+#define SLAB_HWCACHE_ALIGN	0x00002000UL	/* Align objs on cache lines */ /* Object 对齐 L1 CPU cache */
 #define SLAB_CACHE_DMA		0x00004000UL	/* Use GFP_DMA memory */
 #define SLAB_STORE_USER		0x00010000UL	/* DEBUG: Store the last owner for bug hunting */
 #define SLAB_PANIC		0x00040000UL	/* Panic if kmem_cache_create() fails */
@@ -484,7 +484,7 @@ static __always_inline void *kmalloc(size_t size, gfp_t flags)
 			return kmalloc_large(size, flags);
 #ifndef CONFIG_SLOB
 		if (!(flags & GFP_DMA)) {
-			int index = kmalloc_index(size);
+			int index = kmalloc_index(size);  /* 查找使用的哪个 slab */
 
 			if (!index)
 				return ZERO_SIZE_PTR;
