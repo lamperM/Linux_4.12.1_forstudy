@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/include/uapi",
+                "${workspaceFolder}/include/uapi/asm-generic",
+                "${workspaceFolder}/arch/arm64/include",
+                "${workspaceFolder}/arch/arm/include/", 
+                "${workspaceFolder}/arch/arm/include/uapi",
+                "${workspaceFolder}/arch/arm64/include/uapi",
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64"
+        }
+    ],
+    "version": 4
+}
