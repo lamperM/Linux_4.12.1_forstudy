@@ -14,7 +14,8 @@
             "defines": [
                 "_DEBUG",
                 "UNICODE",
-                "_UNICODE"
+                "_UNICODE",
+                "__KERNEL__"
             ],
             "cStandard": "c17",
             "cppStandard": "c++17",
